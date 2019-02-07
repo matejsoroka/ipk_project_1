@@ -1,33 +1,54 @@
 import json
 import socket
+import sys
 
-KEY = "dd8daa3e80e4dc491a5b60ca768c2461"
-city = "Bardejov"
 
-client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_address = ('api.openweathermap.org', 80)
+def get_args():
+    if len(sys.argv) == 3:
+        return [sys.argv[1], sys.argv[2]]
+    else:
+        print("Invalid count of arguments")
+        return False
 
-client_socket.connect(server_address)
 
-req = 'GET /data/2.5/weather?q={}&APPID={} HTTP/1.0\r\n\r\n'.format(city, KEY).encode('UTF-8')
+def print_weather(weather):
+    print(weather['name'])
+    print(weather['weather'][0]['description'])
+    print("temp: {0:.1f}°C".format(float(weather['main']['temp']) - 273.15))
+    print("humidity: {}%".format(weather['main']['humidity']))
+    print("pressure: {}hPa".format(weather['main']['pressure']))
+    print("wind-speed: {}km/h".format(weather['wind']['speed']))
+    print("wind-deg: {}".format(weather['wind']['deg']))
 
-client_socket.send(req)
 
-response = ''
-while True:
-    recv = client_socket.recv(1024)
-    if not recv:
-        break
-    response += recv.decode('UTF-8')
+def __main__():
+    "Blablabalbla"
+    args = get_args()
+    if args:
+        key = args[0]
+        city = args[1]
+    else:
+        sys.exit(-1)
 
-client_socket.close()
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server = ('api.openweathermap.org', 80)
 
-weather = json.loads(response.split("\r\n\r\n")[-1])
+    client_socket.connect(server)
 
-print(weather['name'])
-print(weather['weather'][0]['description'])
-print("temp: {0:.1f}°C".format(float(weather['main']['temp']) - 273.15))
-print("humidity: {}%".format(weather['main']['humidity']))
-print("pressure: {}hPa".format(weather['main']['pressure']))
-print("wind-speed: {}km/h".format(weather['wind']['speed']))
-print("wind-deg: {}".format(weather['wind']['deg']))
+    req = 'GET /data/2.5/weather?q={}&APPID={} HTTP/1.0\r\n\r\n'.format(city, key).encode('UTF-8')
+
+    client_socket.send(req)
+
+    response = ''
+    while True:
+        received = client_socket.recv(1024)
+        if not received:
+            break
+        response += received.decode('UTF-8')
+
+    client_socket.close()
+
+    print_weather(json.loads(response.split("\r\n\r\n")[-1]))
+
+
+__main__()
