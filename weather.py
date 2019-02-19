@@ -1,5 +1,5 @@
-import json
 import socket
+import json
 import sys
 
 
@@ -12,17 +12,18 @@ def get_args():
 
 
 def print_weather(weather):
-    print(weather['name'])
-    print(weather['weather'][0]['description'])
-    print("temp: {0:.1f}°C".format(float(weather['main']['temp']) - 273.15))
-    print("humidity: {}%".format(weather['main']['humidity']))
-    print("pressure: {}hPa".format(weather['main']['pressure']))
-    print("wind-speed: {}km/h".format(weather['wind']['speed']))
-    print("wind-deg: {}".format(weather['wind']['deg']))
+        print(weather['name'])
+        if weather['weather'][0]:
+            print(weather['weather'][0]['description'])
+        print("temp: {} °C".format(weather['main']['temp']))
+        print("humidity: {} %".format(weather['main']['humidity']))
+        print("pressure: {} hPa".format(weather['main']['pressure']))
+        print("wind-speed: {} m/s".format(weather['wind']['speed']))
+        if 'deg' in weather['wind']:
+            print("wind-deg: {}".format(weather['wind']['deg']))
 
 
 def __main__():
-    "Blablabalbla"
     args = get_args()
     if args:
         key = args[0]
@@ -33,11 +34,17 @@ def __main__():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server = ('api.openweathermap.org', 80)
 
-    client_socket.connect(server)
+    try:
+        client_socket.connect(server)
+    except socket.error as exc:
+        print("Caught exception socket.error: {}".format(exc))
 
-    req = 'GET /data/2.5/weather?q={}&APPID={} HTTP/1.0\r\n\r\n'.format(city, key).encode('UTF-8')
+    req = 'GET /data/2.5/weather?q={}&APPID={}&units=metric HTTP/1.0\r\n\r\n'.format(city, key).encode('UTF-8')
 
-    client_socket.send(req)
+    try:
+        client_socket.send(req)
+    except socket.error as exc:
+        print("Caught exception socket.error: {}".format(exc))
 
     response = ''
     while True:
@@ -46,9 +53,17 @@ def __main__():
             break
         response += received.decode('UTF-8')
 
-    client_socket.close()
+    try:
+        client_socket.close()
+    except socket.error as exc:
+        print("Caught exception socket.error: {}".format(exc))
 
-    print_weather(json.loads(response.split("\r\n\r\n")[-1]))
+    response = json.loads(response.split("\r\n")[-1])
+
+    if response["cod"] == 200:
+        print_weather(response)
+    else:
+        print("Error {}: {}".format(response["cod"], response["message"]))
 
 
 __main__()
